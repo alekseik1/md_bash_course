@@ -1,0 +1,1 @@
+for i in {1000000..100000000..1000000}; do sbatch -J test -p RT -N 2 -o size_$i.out --ntasks-per-node=1 --wrap="mpirun -np 2 python 1.py $i"; done;

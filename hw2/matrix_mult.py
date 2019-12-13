@@ -45,19 +45,28 @@ def process_master(adapter: MpiAdapter):
     split_b = np.array_split(matrix_b, len(adapter.slave_nodes), axis=1)
     # Send slices
     offset_row, offset_col = (0, 0)
+    total_result = np.zeros((num_rows_1, num_cols_2))
     for slice_a in split_a:
-        adapter.logger.debug('Entering loop')
+        adapter.logger.debug('Iteration `slice_a`')
         all_nodes = adapter.slave_nodes.copy()
         for slice_b in split_b:
             node = all_nodes.pop()
             adapter.logger.info(f'Sending to node: {node}. Data: {(slice_a.shape, slice_b.shape)}')
             adapter.send_to(node, (slice_a, slice_b, offset_row, offset_col))
-            # Receive
-            # TODO: aggregate to results with respect of offsets
-            result, offset_row, offset_col = adapter.receive_from(node)
-            adapter.logger.info(f'Received data: {(result.shape, offset_row, offset_col)}')
-
             offset_col += slice_b.shape[1]
+        adapter.logger.info(f'Waiting for results from salves...')
+        # NOTE: it is important that we at first send all, and ONLY THEN wait for results
+        adapter.logger.debug(f'total_result shape: {total_result.shape}')
+        for node in adapter.slave_nodes:
+            # Receive
+            adapter.logger.info(f'Waiting from: {node}')
+            result, offset_row_received, offset_col_received = adapter.receive_from(node)
+            adapter.logger.info(f'Received results: {(result.shape, offset_row, offset_col)}')
+            adapter.logger.debug(f'offset_row: {offset_row} | offset_col: {offset_col} | result.shape: {result.shape}')
+            total_result[
+                offset_row_received:offset_row_received + result.shape[0],
+                offset_col_received:offset_col_received + result.shape[1]] = result
+            adapter.logger.debug(f'Updated total_result')
         offset_col = 0
         offset_row += slice_a.shape[0]
         adapter.logger.debug(f'offset_row increased')
@@ -65,6 +74,8 @@ def process_master(adapter: MpiAdapter):
         adapter.logger.info(f'Sending finish signal to: {slave_id}')
         adapter.send_to(slave_id, ('finish',))
         adapter.logger.debug(f'Finsih singal sent to: {slave_id}')
+    logger.debug(f'Result is correct: {np.all(total_result == np.dot(matrix_a, matrix_b))}')
+    logger.info(f'Bye-bye')
 
 
 def process_slave(adapter: MpiAdapter):

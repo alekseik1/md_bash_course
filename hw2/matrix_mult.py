@@ -57,7 +57,7 @@ def process_master(adapter: MpiAdapter):
         adapter.logger.info(f'Waiting for results from salves...')
         # NOTE: it is important that we at first send all, and ONLY THEN wait for results
         adapter.logger.debug(f'total_result shape: {total_result.shape}')
-        for node in adapter.slave_nodes:
+        for node in adapter.slave_nodes[::-1]:
             # Receive
             adapter.logger.info(f'Waiting from: {node}')
             result, offset_row_received, offset_col_received = adapter.receive_from(node)

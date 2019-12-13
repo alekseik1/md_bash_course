@@ -75,7 +75,10 @@ def process_master(adapter: MpiAdapter):
         adapter.send_to(slave_id, ('finish',))
         adapter.logger.debug(f'Finsih singal sent to: {slave_id}')
     # logger.debug(f'Result is correct: {np.all(total_result == np.dot(matrix_a, matrix_b))}')
-    logger.info(f'Bye-bye')
+    if do_write_output:
+        logger.info('Writing to csv file..')
+        np.savetxt('result.csv', total_result, delimiter=',')
+        logger.info('Written to csv. Bye!')
 
 
 def process_slave(adapter: MpiAdapter):
@@ -98,7 +101,7 @@ if __name__ == '__main__':
     mpi_adapter = MpiAdapter(master_node=0)
     logger = mpi_adapter.logger
     logger.info('Process started')
-    num_rows_1, num_cols_1, num_rows_2, num_cols_2 = map(int, sys.argv[1:5])
+    num_rows_1, num_cols_1, num_rows_2, num_cols_2, do_write_output = map(int, sys.argv[1:6])
     if mpi_adapter.am_i_master:
         process_master(mpi_adapter)
     else:

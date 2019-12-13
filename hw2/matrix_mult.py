@@ -51,6 +51,7 @@ def generate_matrix(num_rows, num_columns):
 def process_master(adapter: MpiAdapter):
     matrix_a = generate_matrix(num_rows=num_rows_1, num_columns=num_cols_1)
     matrix_b = generate_matrix(num_rows=num_rows_2, num_columns=num_cols_2)
+    progress_counter = 0
     # Split matrix for all the workers
     split_a = np.array_split(matrix_a, len(adapter.slave_nodes), axis=0)
     split_b = np.array_split(matrix_b, len(adapter.slave_nodes), axis=1)
@@ -83,6 +84,8 @@ def process_master(adapter: MpiAdapter):
                 offset_row_received:offset_row_received + result.shape[0],
                 offset_col_received:offset_col_received + result.shape[1]] = result
             adapter.logger.debug(f'Updated total_result')
+            progress_counter += 1
+            adapter.logger.info(f'#### PROGRESS: {100*progress_counter/(len(split_a)*len(split_b))} % ####')
         offset_col = 0
         offset_row += slice_a.shape[0]
         adapter.logger.debug(f'offset_row increased')
@@ -111,6 +114,7 @@ def process_slave(adapter: MpiAdapter):
         adapter.logger.info(f'Finished calculating product.')
         adapter.logger.info(f'Sending back. Shape: {result.shape}')
         adapter.send_to(adapter.master_node, (result, offset_row, offset_col))
+        adapter.logger.info('Send back to master')
 
 
 if __name__ == '__main__':

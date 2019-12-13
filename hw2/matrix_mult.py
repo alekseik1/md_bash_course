@@ -64,6 +64,7 @@ def process_master(adapter: MpiAdapter):
         for slice_b in split_b:
             node = all_nodes.pop()
             adapter.logger.info(f'Sending to node: {node}. Data: {(slice_a.shape, slice_b.shape)}')
+            adapter.logger.info(f'About to send: {slice_a.nbytes + slice_b.nbytes} bytes')
             adapter.async_send_to(node, (slice_a, slice_b, offset_row, offset_col))
             offset_col += slice_b.shape[1]
         # NOTE: it is important to wait for send to complete since mpi4py has strange problems

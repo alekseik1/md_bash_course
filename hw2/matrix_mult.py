@@ -46,7 +46,7 @@ def process_master(adapter: MpiAdapter):
     # Send slices
     offset_row, offset_col = (0, 0)
     for slice_a in split_a:
-        adapter.logger.info('Entering loop')
+        adapter.logger.debug('Entering loop')
         all_nodes = adapter.slave_nodes.copy()
         for slice_b in split_b:
             node = all_nodes.pop()
@@ -60,26 +60,26 @@ def process_master(adapter: MpiAdapter):
             offset_col += slice_b.shape[1]
         offset_col = 0
         offset_row += slice_a.shape[0]
-        adapter.logger.info(f'offset_row increased')
+        adapter.logger.debug(f'offset_row increased')
     for slave_id in adapter.slave_nodes:
         adapter.logger.info(f'Sending finish signal to: {slave_id}')
         adapter.send_to(slave_id, ('finish',))
-        adapter.logger.info(f'Finsih singal sent to: {slave_id}')
+        adapter.logger.debug(f'Finsih singal sent to: {slave_id}')
 
 
 def process_slave(adapter: MpiAdapter):
     while True:
         data = adapter.receive_from(adapter.master_node)
         # Signal to stop all workers
-        adapter.logger.info(f'Received message with len: {len(data)}')
+        adapter.logger.debug(f'Received message. len: {len(data)}')
         if len(data) == 1:
             adapter.logger.info(f'Received stop message. EXIT')
             return
         slice_1, slice_2, offset_row, offset_col = data
-        adapter.logger.info(f'Received from master node. Data: {(slice_1.shape, slice_2.shape)}')
+        adapter.logger.info(f'Unpacked. Shape: {(slice_1.shape, slice_2.shape)}')
         result = np.dot(slice_1, slice_2)
         adapter.logger.info(f'Finished calculating product.')
-        adapter.logger.info(f'Sending back to master result with shape: {result.shape}')
+        adapter.logger.info(f'Sending back. Shape: {result.shape}')
         adapter.send_to(adapter.master_node, (result, offset_row, offset_col))
 
 

@@ -74,7 +74,7 @@ def process_master(adapter: MpiAdapter):
         adapter.logger.info(f'Sending finish signal to: {slave_id}')
         adapter.send_to(slave_id, ('finish',))
         adapter.logger.debug(f'Finsih singal sent to: {slave_id}')
-    logger.debug(f'Result is correct: {np.all(total_result == np.dot(matrix_a, matrix_b))}')
+    # logger.debug(f'Result is correct: {np.all(total_result == np.dot(matrix_a, matrix_b))}')
     logger.info(f'Bye-bye')
 
 

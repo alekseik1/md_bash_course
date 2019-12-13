@@ -12,6 +12,7 @@ class MpiAdapter:
         self.master_node = master_node
         self.slave_nodes = list(set(range(self.comm.Get_size())) - {self.master_node})
         self.logger = setup_logger(self.comm)
+        self.send_queue = []
         if self.master_node == self.comm.Get_rank():
             self.logger.info('Total processes: {}'.format(self.comm.Get_size()))
             self.logger.info('Master process: {}'.format(self.master_node))
@@ -27,6 +28,16 @@ class MpiAdapter:
 
     def send_to(self, whom, data, tag=0):
         self.comm.send(data, dest=whom, tag=tag)
+
+    def async_send_to(self, whom, data, tag=0):
+        self.send_queue.append(self.comm.isend(data, dest=whom, tag=tag))
+
+    def wait_for_send(self):
+        while True:
+            if len(self.send_queue) == 0:
+                return
+            current_request = self.send_queue.pop()
+            current_request.wait()
 
     def receive_from(self, source, tag=0):
         return self.comm.recv(source=source, tag=tag)
@@ -52,8 +63,13 @@ def process_master(adapter: MpiAdapter):
         for slice_b in split_b:
             node = all_nodes.pop()
             adapter.logger.info(f'Sending to node: {node}. Data: {(slice_a.shape, slice_b.shape)}')
-            adapter.send_to(node, (slice_a, slice_b, offset_row, offset_col))
+            adapter.async_send_to(node, (slice_a, slice_b, offset_row, offset_col))
             offset_col += slice_b.shape[1]
+        # NOTE: it is important to wait for send to complete since mpi4py has strange problems
+        adapter.logger.info('Waiting for SEND to finish...')
+        adapter.wait_for_send()
+        adapter.logger.info('SEND is finished')
+
         adapter.logger.info(f'Waiting for results from salves...')
         # NOTE: it is important that we at first send all, and ONLY THEN wait for results
         adapter.logger.debug(f'total_result shape: {total_result.shape}')

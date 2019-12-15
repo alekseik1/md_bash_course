@@ -35,6 +35,6 @@ if __name__ == '__main__':
     globalsc = comm.reduce(sc, op=MPI.SUM, root=0)
     if my_rank == 0:
         end = time.time()
-        print(f'{n_proc};{end - start}')
-        print("Result = ", globalsc, " powered on ", n_proc, " proc")
-        print("Time = ", end - start)
+        print(f'{n};{n_proc};{end - start}')
+        #print("Result = ", globalsc, " powered on ", n_proc, " proc")
+        #print("Time = ", end - start)

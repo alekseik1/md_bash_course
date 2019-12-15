@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 from logger_ import setup_logger
+import time
 
 
 class MpiAdapter:
@@ -51,6 +52,7 @@ def generate_matrix(num_rows, num_columns):
 def process_master(adapter: MpiAdapter):
     matrix_a = generate_matrix(num_rows=num_rows_1, num_columns=num_cols_1)
     matrix_b = generate_matrix(num_rows=num_rows_2, num_columns=num_cols_2)
+    start_time = time.time()
     progress_counter = 0
     # Split matrix for all the workers
     split_a = np.array_split(matrix_a, len(adapter.slave_nodes), axis=0)
@@ -98,7 +100,9 @@ def process_master(adapter: MpiAdapter):
     if do_write_output:
         logger.info('Writing to csv file..')
         np.savetxt('result.csv', total_result, delimiter=',')
-        logger.info('Written to csv. Bye!')
+        logger.info('Written to csv')
+    logger.info('Bye-bye!')
+    return time.time() - start_time
 
 
 def process_slave(adapter: MpiAdapter):
@@ -122,9 +126,11 @@ if __name__ == '__main__':
     mpi_adapter = MpiAdapter(master_node=0)
     logger = mpi_adapter.logger
     logger.info('Process started')
+    start_time = time.time()
     num_rows_1, num_cols_1, num_rows_2, num_cols_2, do_write_output = map(int, sys.argv[1:6])
     if mpi_adapter.am_i_master:
-        process_master(mpi_adapter)
+        time_elapsed = process_master(mpi_adapter)
+        print(time_elapsed)
     else:
         process_slave(mpi_adapter)
     mpi_adapter._MPI.Finalize()

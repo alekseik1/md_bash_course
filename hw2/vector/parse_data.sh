@@ -2,7 +2,7 @@ if [[ ! -f "results.csv" ]]; then
     echo "n;p;time" > results.csv
 fi
 
-for p in $(seq 2 15)
+for p in $(seq 2 8)
 do 
     for n in 1000000 5000000 10000000 50000000 100000000
     do
